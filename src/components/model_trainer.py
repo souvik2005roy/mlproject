@@ -1,18 +1,23 @@
 import os
 import sys
 
-from dataclasses import dataclass
-from src.logger import logging
-from src.exception import CustomException
 from src.utlis import evaluate_models, save_object
 
-from catboost import CatBoostClassifier
-from sklearn.ensemble import (RandomForestClassifier, GradientBoostingClassifier,AdaBoostClassifier)
-from xgboost import XGBRegressor
+from sklearn.ensemble import (
+    RandomForestRegressor,
+    GradientBoostingRegressor,
+    AdaBoostRegressor
+)
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import accuracy_score, r2_score
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBRegressor
+from catboost import CatBoostRegressor
+
+from sklearn.metrics import r2_score
+from dataclasses import dataclass
+from src.exception import CustomException
+from src.logger import logging   
 
 @dataclass
 class ModelTrainerConfig:
@@ -29,16 +34,42 @@ class ModelTrainer:
             X_test, y_test = test_array[:,:-1], test_array[:,-1]
 
             models = {
-                "Random Forest": RandomForestClassifier(),
-                "Decision Tree": DecisionTreeClassifier(),
-                "Gradient Boosting": GradientBoostingClassifier(),
-                "XGBoost": XGBRegressor(objective="reg:squarederror",random_state=42),
-                "CatBoosting Classifier": CatBoostClassifier(verbose=False),
-                "AdaBoost Classifier": AdaBoostClassifier(),
-                "KNeighbors Classifier": KNeighborsClassifier()
+            "Linear Regression": LinearRegression(),
+            "Decision Tree": DecisionTreeRegressor(),
+            "Random Forest": RandomForestRegressor(),
+            "Gradient Boosting": GradientBoostingRegressor(),
+            "AdaBoost": AdaBoostRegressor(),
+            "KNN": KNeighborsRegressor(),
+            "XGBoost": XGBRegressor(objective="reg:squarederror", random_state=42),
+            "CatBoost": CatBoostRegressor(verbose=False)
+                    }
+            params = {
+            "Linear Regression": {},
+            "Decision Tree": {
+                "max_depth": [5, 10, 20]
+            },
+            "Random Forest": {
+                "n_estimators": [50, 100]
+            },
+            "Gradient Boosting": {
+                "learning_rate": [0.05, 0.1]
+            },
+            "AdaBoost": {
+                "n_estimators": [50, 100]
+            },
+            "KNN": {
+                "n_neighbors": [3, 5, 7]
+            },
+            "XGBoost": {
+                "learning_rate": [0.05, 0.1],
+                "n_estimators": [100, 200]
+            },
+            "CatBoost": {
+                "depth": [6, 8]
             }
+        }
 
-            model_report: dict = evaluate_models(x_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, models=models)
+            model_report: dict = evaluate_models(x_train=X_train, y_train=y_train, X_test=X_test, y_test=y_test, models=models, param=params)
 
             best_model_score = max(sorted(model_report.values()))
             best_model_name = list(model_report.keys())[list(model_report.values()).index(best_model_score)]
